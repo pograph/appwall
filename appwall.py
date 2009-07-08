@@ -9,7 +9,7 @@ from pygame.locals import *
 import Image
 
 import feedparser
-import re, os, urllib, copy, random
+import re, os, sys, urllib, copy, random
 from math import *
 from time import time
 
@@ -52,7 +52,10 @@ class Icon(pygame.sprite.Sprite):
 		# load image and add alpha channel
 		rgb_chan = Image.open(filename).split()
 		alpha_chan = Image.open('template.png').split()
-		image = Image.merge('RGBA', (rgb_chan[0], rgb_chan[1], rgb_chan[2], alpha_chan[0]))
+                if len(rgb_chan) >= 3: 
+                        image = Image.merge('RGBA', (rgb_chan[0], rgb_chan[1], rgb_chan[2], alpha_chan[0]))
+                else:
+                        image = Image.merge('RGBA', (rgb_chan[0], rgb_chan[0], rgb_chan[0], alpha_chan[0]))
 		
 		# convert to pygame image
 		image2 = pygame.image.fromstring(image.tostring(), image.size, 'RGBA')
@@ -118,11 +121,17 @@ def z_to_alpha(z):
 def load_files(files):
 	img_ext = ('.jpg')
 	sprites = []
+	print "Loading icons"
 	for f in files:
 		if len(sprites) == grid_width * grid_height:
 			return sprites
 		if f[-4:] in img_ext:
-			sprites.append(Icon(os.path.join('icons', f)))
+                        try:
+        			sprites.append(Icon(os.path.join('icons', f)))
+        		except:
+                                print "ignore error on parsing ", f
+                                print sys.exc_info()
+                                pass
 	return sprites
 
 def assign_sprites(sprites):	
@@ -135,6 +144,8 @@ def assign_sprites(sprites):
 		
 def main():
 	global grid_width, grid_height
+	print "Welcome to your own App Wall."
+	
 	pygame.init()
 	
 	# init grid
@@ -156,13 +167,13 @@ def main():
 		
 	files = os.listdir('icons')
 	if len(files) < icons_needed:
+                print "Downloading icons..."
 		for url in app_rss_urls:
 			download_icons(url)
 		files = os.listdir('icons')
 		
 	if len(files) < icons_needed:
 		raise SystemExit, "not enough icons"
-	files = files[0:icons_needed]
 		
 	# turn into fullscreen mode
 	screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -175,6 +186,9 @@ def main():
 
 	# load icons
 	sprites = load_files(files)
+	if len(sprites) < icons_needed:
+                raise SystemExit, "not enough icons"
+        
 	random.shuffle(sprites)
 	assign_sprites(sprites)
 	
